@@ -24,6 +24,24 @@
 		});
 		angular.module("chat").controller("chatCtrl", function ($scope) {
 			$scope.messages = [];
+			$scope.users = [];
+			$scope.usersList = "";
+
+			socket.on("users", function (data) {
+				$scope.$apply(function () {
+					$scope.users = data;
+					$scope.usersList = $scope.users.join(",");
+				});
+			});
+
+
+			socket.on("user-connection", function (data) {
+				$scope.$apply(function () {
+					$scope.users.push(data);
+					$scope.usersList = $scope.users.join(",");
+					$scope.messages.push({date: new Date(), nickname: "Server", message: data + " has entered"});
+				});
+			});
 
 			socket.on("message", function (data) {
 				$scope.$apply(function () {
@@ -32,12 +50,13 @@
 			});
 
 			$scope.connect = function () {
+				socket.emit("user-connection", $scope.nickname);
 				$scope.connected = true;
 			};
 
 			$scope.send = function (message, $event) {
 				if ($event.keyCode !== 13) return;
-				var _message = {nickname: $scope.nickname, message: message};
+				var _message = {date: new Date(), nickname: $scope.nickname, message: message};
 				socket.emit("message", _message);
 				delete $scope.message;
 			};
@@ -77,9 +96,10 @@
 		<div ng-show="connected">
 			<div class="panel panel-default panel-body messages" autoscroll="messages">
 				<div ng-repeat="message in messages">
-					{{message.nickname}}: {{message.message}}
+					<b>[{{message.date | date:'dd/MM/yyyy HH:mm'}}]</b> {{message.nickname}}: {{message.message}}
 				</div>
 			</div>
+			<h5>Users: {{usersList}}</h5>
 			<input class="form-control" ng-model="message" ng-keyup="send(message, $event)" placeholder="Type your message..."/>
 		</div>
 	</div>
