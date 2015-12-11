@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html ng-app="chat">
+<head>
+	<meta charset="UTF-8">
+	<title>Chat</title>
+	<link rel="stylesheet" type="text/css" href="bower_components/bootstrap/dist/css/bootstrap.css">
+	<link rel="stylesheet" type="text/css" href="bower_components/font-awesome/css/font-awesome.css">
+	<script src="bower_components/angular/angular.js"></script>
+	<script src="bower_components/socket.io-client/socket.io.js"></script>
+	<script>
+		var socket = io();
+		angular.module("chat", []);
+		angular.module("chat").directive("autoscroll", function () {
+			return {
+				scope: {
+					autoscroll: "="
+				},
+				link: function (scope, element) {
+					scope.$watchCollection("autoscroll", function () {
+						element[0].scrollTop = element[0].scrollHeight;
+					});
+				}
+			};
+		});
+		angular.module("chat").controller("chatCtrl", function ($scope) {
+			$scope.messages = [];
+
+			socket.on("message", function (data) {
+				$scope.$apply(function () {
+					$scope.messages.push(data);
+				});
+			});
+
+			$scope.connect = function () {
+				$scope.connected = true;
+			};
+
+			$scope.send = function (message, $event) {
+				if ($event.keyCode !== 13) return;
+				var _message = {nickname: $scope.nickname, message: message};
+				socket.emit("message", _message);
+				delete $scope.message;
+			};
+		});
+	</script>
+	<style>
+		.main {
+			background-color: #DDD;
+			width: 400px;
+			margin-top: 50px;
+			margin-left: auto;
+			margin-right: auto;
+			padding: 20px;
+		}
+
+		.messages {
+			height: 300px;
+			overflow: auto;
+		}
+
+		.fa-heart {
+			color: red;
+		}
+	</style>
+</head>
+<body>
+	<div class="main" ng-controller="chatCtrl">
+		<h2 class="text-center"><span class="fa fa-comments"></span> Chat</h2>
+		<br/>
+		<div ng-hide="connected">
+			<input class="form-control" ng-model="nickname" placeholder="Nickname">
+			<br/>
+			<div class="text-right">	
+				<button class="btn btn-success" ng-click="connect()">Connect</button>
+			</div>
+		</div>
+		<div ng-show="connected">
+			<div class="panel panel-default panel-body messages" autoscroll="messages">
+				<div ng-repeat="message in messages">
+					{{message.nickname}}: {{message.message}}
+				</div>
+			</div>
+			<input class="form-control" ng-model="message" ng-keyup="send(message, $event)" placeholder="Type your message..."/>
+		</div>
+	</div>
+	<br/>
+	<div class="text-center text-muted">
+		Made with <span class="fa fa-heart" ng-class="{'fa-spin': spin}" ng-click="spin=!spin"></span> in Gennera
+	</div>
+</body>
+</html>
